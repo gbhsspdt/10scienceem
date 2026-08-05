@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -355,6 +356,92 @@ input[type="text"]:focus{
 .review-option.wrong-selected{background:var(--bad-bg); border-color:var(--bad); color:#a3212f; font-weight:700;}
 .review-option.unanswered-tag{font-size:0.78rem; color:var(--bad); margin-top:6px; display:inline-block; font-weight:700;}
 
+
+/* ---------- Test Mode Selector ---------- */
+.mode-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(200px,1fr));
+  gap:14px;
+  margin-bottom:26px;
+}
+.mode-card{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:6px;
+  text-align:left;
+  padding:18px 20px;
+  border-radius:var(--radius-md);
+  border:2px solid var(--line);
+  background:var(--paper);
+  cursor:pointer;
+  transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  font-family:var(--font-body);
+}
+.mode-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 10px 24px rgba(124,92,252,0.16);
+  border-color:var(--purple);
+}
+.mode-card .mode-icon{ font-size:1.7rem; }
+.mode-card .mode-title{ font-weight:700; color:var(--ink); font-size:1.02rem; }
+.mode-card .mode-sub{ font-size:0.82rem; color:var(--ink-soft); }
+.mode-card.mode-disabled{ opacity:0.5; cursor:not-allowed; }
+.mode-card.mode-disabled:hover{ transform:none; box-shadow:none; border-color:var(--line); }
+
+.mode-panel{
+  background:var(--cloud);
+  border:2px dashed var(--line);
+  border-radius:var(--radius-md);
+  padding:20px;
+  margin-bottom:26px;
+}
+.mode-panel > label{ font-weight:600; font-size:0.85rem; color:var(--ink-soft); display:block; margin-bottom:8px; }
+.mode-panel input[type="number"]{
+  width:120px;
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  border:2px solid var(--line);
+  font-family:var(--font-body);
+  font-size:1rem;
+  margin-right:12px;
+  vertical-align:middle;
+}
+.custom-toolbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.btn-sm{ padding:8px 14px; font-size:0.82rem; }
+.custom-total{ font-size:0.82rem; color:var(--ink-soft); font-weight:600; margin-left:auto; }
+.custom-chapter-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+  gap:8px;
+  max-height:320px;
+  overflow-y:auto;
+  padding:4px;
+  margin-bottom:16px;
+}
+.custom-chapter-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  border:2px solid var(--line);
+  background:var(--paper);
+  cursor:pointer;
+  font-size:0.88rem;
+}
+.custom-chapter-item:hover{ border-color:var(--purple); }
+.custom-chapter-item input[type="checkbox"]{ width:17px; height:17px; accent-color:var(--purple); flex-shrink:0; }
+.custom-chapter-item .cc-title{ flex:1; color:var(--ink); font-weight:500; }
+.custom-chapter-item .cc-count{ color:var(--ink-soft); font-size:0.78rem; font-weight:600; }
+
+
 /* ---------- Footer ---------- */
 .site-footer{
   text-align:center; padding:24px; color:var(--ink-soft); font-size:0.82rem; font-weight:500;
@@ -440,7 +527,42 @@ input[type="text"]:focus{
       <h2>Choose a chapter to begin</h2>
       <p class="section-sub">Each chapter is a self-contained test. Questions and options are shuffled every time.</p>
     </div>
-    <div class="chapter-grid" id="chapterGrid"></div>
+    
+        <div class="mode-grid" id="modeGrid">
+          <button type="button" class="mode-card mode-mixed" id="btnModeMixed">
+            <span class="mode-icon">🎲</span>
+            <span class="mode-title">Mixed Test</span>
+            <span class="mode-sub">Random mix from every chapter</span>
+          </button>
+          <button type="button" class="mode-card mode-custom" id="btnModeCustom">
+            <span class="mode-icon">🧩</span>
+            <span class="mode-title">Custom Test</span>
+            <span class="mode-sub">Pick your own chapters</span>
+          </button>
+          <button type="button" class="mode-card mode-weak" id="btnModeWeak">
+            <span class="mode-icon">🧠</span>
+            <span class="mode-title">Weak Questions</span>
+            <span class="mode-sub"><span id="weakCount">0</span> to review</span>
+          </button>
+        </div>
+
+        <div class="mode-panel d-none" id="panelMixed">
+          <label for="mixedCount">Number of questions</label>
+          <input type="number" id="mixedCount" min="5" max="500" value="25">
+          <button type="button" class="btn btn-primary" id="btnStartMixed">Start Mixed Test &rarr;</button>
+        </div>
+
+        <div class="mode-panel d-none" id="panelCustom">
+          <div class="custom-toolbar">
+            <button type="button" class="btn btn-ghost btn-sm" id="btnSelectAll">Select All</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnSelectNone">Clear</button>
+            <span class="custom-total" id="customTotalCount">0</span>
+          </div>
+          <div class="custom-chapter-list" id="customChapterList"></div>
+          <button type="button" class="btn btn-primary" id="btnStartCustom">Start Custom Test &rarr;</button>
+        </div>
+
+        <div class="chapter-grid" id="chapterGrid"></div>
   </section>
 
   <!-- ============ TEST VIEW ============ -->
@@ -904,6 +1026,11 @@ const QUESTION_BANK = [
    instructions to create this URL.
    ========================================================= */
 const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycby0aKMDZzcHm5xsIA7mV729yxM2BkPJ_oQeUxWMQV4WbkEpGtgdz7Kdc_woCoED4oQ3/exec";
+const SUBJECT_KEY = "science";
+const SUBJECT_LABEL = "Science";
+const MEDIUM_KEY = "em";
+const MEDIUM_LABEL = "English Medium";
+const WEAK_KEY = "weak_" + SUBJECT_KEY + "_" + MEDIUM_KEY;
 
 window.addEventListener("error", function(e){
   showFatalError(e.message + (e.filename ? " (" + e.filename + ":" + e.lineno + ")" : ""));
@@ -934,6 +1061,9 @@ function showFatalError(msg){
   const state = {
     student: { name:"", school:"", reg:"", cls:"" },
     chapterIndex: null,
+    testType: "chapter",
+    testLabel: "",
+    testMeta: {},
     questions: [],
     currentQ: 0,
     answers: []
@@ -1000,21 +1130,76 @@ function showFatalError(msg){
       card.addEventListener("click", () => startTest(idx));
       grid.appendChild(card);
     });
+    refreshWeakBadge();
   }
 
   // ---------- Test Flow ----------
   function startTest(chapterIndex){
-    state.chapterIndex = chapterIndex;
     const chapter = QUESTION_BANK[chapterIndex];
+    const withOrigin = chapter.questions.map((q, qi) => ({ q: q.q, options: q.options, answer: q.answer, _ch: chapterIndex, _qi: qi }));
+    beginTest(withOrigin, chapter.chapter, "chapter", { chapterIndex: chapterIndex });
+  }
 
-    const shuffledQuestions = shuffle(chapter.questions).map(orig => {
+  // ---------- Weak Question Tracking ----------
+  function loadWeakMap(){
+    try{ return JSON.parse(localStorage.getItem(WEAK_KEY) || "{}"); }catch(e){ return {}; }
+  }
+  function saveWeakMap(map){
+    try{ localStorage.setItem(WEAK_KEY, JSON.stringify(map)); }catch(e){}
+  }
+  function refreshWeakBadge(){
+    const map = loadWeakMap();
+    const count = Object.keys(map).length;
+    const badgeEl = el("weakCount");
+    if(badgeEl) badgeEl.textContent = count;
+    const cardEl = el("btnModeWeak");
+    if(cardEl) cardEl.classList.toggle("mode-disabled", count === 0);
+  }
+  function updateWeakFromResult(){
+    const map = loadWeakMap();
+    state.questions.forEach((q, i) => {
+      if(q._ch === undefined || q._ch === null || q._qi === undefined) return;
+      const key = q._ch + ":" + q._qi;
+      const isCorrect = state.answers[i] === q.answer;
+      if(isCorrect){
+        delete map[key];
+      } else {
+        const orig = QUESTION_BANK[q._ch].questions[q._qi];
+        map[key] = { ch: q._ch, qi: q._qi, q: orig.q, options: orig.options, answer: orig.answer };
+      }
+    });
+    saveWeakMap(map);
+    refreshWeakBadge();
+  }
+
+  // ---------- Mixed / Custom / Weak Test Builders ----------
+  function getAllQuestionsWithOrigin(chapterIdxs){
+    const idxs = (chapterIdxs && chapterIdxs.length) ? chapterIdxs : QUESTION_BANK.map((_, i) => i);
+    const list = [];
+    idxs.forEach(ci => {
+      QUESTION_BANK[ci].questions.forEach((q, qi) => {
+        list.push({ q: q.q, options: q.options, answer: q.answer, _ch: ci, _qi: qi });
+      });
+    });
+    return list;
+  }
+
+  function beginTest(rawQuestions, label, testType, meta){
+    state.testType = testType;
+    state.testLabel = label;
+    state.testMeta = meta || {};
+    state.chapterIndex = (meta && typeof meta.chapterIndex === "number") ? meta.chapterIndex : null;
+
+    const shuffledQuestions = shuffle(rawQuestions).map(orig => {
       const optionPairs = orig.options.map((text, i) => ({ text, isCorrect: i === orig.answer }));
       const shuffledOptions = shuffle(optionPairs);
       const newAnswerIndex = shuffledOptions.findIndex(o => o.isCorrect);
       return {
         q: orig.q,
         options: shuffledOptions.map(o => o.text),
-        answer: newAnswerIndex
+        answer: newAnswerIndex,
+        _ch: orig._ch,
+        _qi: orig._qi
       };
     });
 
@@ -1022,10 +1207,114 @@ function showFatalError(msg){
     state.answers = new Array(shuffledQuestions.length).fill(null);
     state.currentQ = 0;
 
-    el("testChapterName").textContent = chapter.chapter;
+    el("testChapterName").textContent = label;
     renderQuestion();
     showView("view-test");
   }
+
+  function startMixedTest(count){
+    const all = getAllQuestionsWithOrigin();
+    const n = Math.max(1, Math.min(count || 25, all.length));
+    const picked = shuffle(all).slice(0, n);
+    const label = "Mixed Test · " + n + " Questions";
+    beginTest(picked, label, "mixed", { count: n });
+  }
+
+  function startCustomTest(chapterIdxs){
+    if(!chapterIdxs || !chapterIdxs.length){
+      alert("Please select at least one chapter.");
+      return;
+    }
+    const list = getAllQuestionsWithOrigin(chapterIdxs);
+    const label = "Custom Test · " + chapterIdxs.length + " Chapters · " + list.length + " Questions";
+    beginTest(list, label, "custom", { chapterIdxs: chapterIdxs });
+  }
+
+  function startWeakTest(){
+    const map = loadWeakMap();
+    const keys = Object.keys(map);
+    if(!keys.length){
+      alert("No weak questions yet. Attempt a few tests first — anything you get wrong will show up here for focused review.");
+      return;
+    }
+    const list = keys.map(k => {
+      const w = map[k];
+      return { q: w.q, options: w.options, answer: w.answer, _ch: w.ch, _qi: w.qi };
+    });
+    const label = "Weak Questions Review · " + list.length + " Questions";
+    beginTest(list, label, "weak", {});
+  }
+
+  function restartCurrentTest(){
+    if(state.testType === "mixed") startMixedTest(state.testMeta.count);
+    else if(state.testType === "custom") startCustomTest(state.testMeta.chapterIdxs);
+    else if(state.testType === "weak") startWeakTest();
+    else startTest(state.chapterIndex);
+  }
+
+  // ---------- Test Mode UI ----------
+  function togglePanel(id){
+    ["panelMixed","panelCustom"].forEach(p => {
+      if(p === id) el(p).classList.toggle("d-none");
+      else el(p).classList.add("d-none");
+    });
+  }
+
+  function buildCustomChapterList(){
+    const container = el("customChapterList");
+    container.innerHTML = "";
+    QUESTION_BANK.forEach((ch, idx) => {
+      const row = document.createElement("label");
+      row.className = "custom-chapter-item";
+      row.innerHTML = `
+        <input type="checkbox" class="custom-chk" data-idx="${idx}">
+        <span class="cc-title">${ch.chapter}</span>
+        <span class="cc-count">${ch.questions.length}</span>
+      `;
+      container.appendChild(row);
+    });
+    container.querySelectorAll(".custom-chk").forEach(chk => {
+      chk.addEventListener("change", updateCustomTotal);
+    });
+    updateCustomTotal();
+  }
+
+  function updateCustomTotal(){
+    const checked = Array.from(el("customChapterList").querySelectorAll(".custom-chk:checked"));
+    const totalQ = checked.reduce((sum, chk) => sum + QUESTION_BANK[+chk.dataset.idx].questions.length, 0);
+    el("customTotalCount").textContent = checked.length + " chapters · " + totalQ + " questions selected";
+  }
+
+  el("btnModeMixed").addEventListener("click", () => {
+    const totalQ = QUESTION_BANK.reduce((s, c) => s + c.questions.length, 0);
+    const input = el("mixedCount");
+    input.max = totalQ;
+    if(!input.value || +input.value > totalQ) input.value = Math.min(25, totalQ);
+    togglePanel("panelMixed");
+  });
+  el("btnModeCustom").addEventListener("click", () => {
+    buildCustomChapterList();
+    togglePanel("panelCustom");
+  });
+  el("btnModeWeak").addEventListener("click", () => startWeakTest());
+  el("btnSelectAll").addEventListener("click", () => {
+    el("customChapterList").querySelectorAll(".custom-chk").forEach(c => c.checked = true);
+    updateCustomTotal();
+  });
+  el("btnSelectNone").addEventListener("click", () => {
+    el("customChapterList").querySelectorAll(".custom-chk").forEach(c => c.checked = false);
+    updateCustomTotal();
+  });
+  el("btnStartCustom").addEventListener("click", () => {
+    const idxs = Array.from(el("customChapterList").querySelectorAll(".custom-chk:checked")).map(c => +c.dataset.idx);
+    startCustomTest(idxs);
+  });
+  el("btnStartMixed").addEventListener("click", () => {
+    const n = parseInt(el("mixedCount").value, 10) || 25;
+    startMixedTest(n);
+  });
+
+
 
   function renderQuestion(){
     const total = state.questions.length;
@@ -1089,7 +1378,7 @@ function showFatalError(msg){
     const wrong = total - correct;
     const pct = Math.round((correct / total) * 100);
     const grade = gradeFor(pct);
-    const chapterName = QUESTION_BANK[state.chapterIndex].chapter;
+    const chapterName = state.testLabel;
 
     el("resultChapter").textContent = chapterName;
     el("rsName").textContent = state.student.name;
@@ -1110,8 +1399,12 @@ function showFatalError(msg){
     ring.style.stroke = pct >= 40 ? "url(#scoreGradGood)" : "url(#scoreGradBad)";
     requestAnimationFrame(() => { ring.style.strokeDashoffset = offset; });
 
+    updateWeakFromResult();
     showView("view-result");
     sendResultToSheet({
+      subject: SUBJECT_LABEL,
+      medium: MEDIUM_LABEL,
+      testType: state.testType,
       name: state.student.name,
       school: state.student.school,
       cls: state.student.cls,
@@ -1121,7 +1414,8 @@ function showFatalError(msg){
       correct: correct,
       wrong: wrong,
       percent: pct,
-      grade: grade
+      grade: grade,
+      timestamp: new Date().toISOString()
     });
   }
 
@@ -1172,8 +1466,8 @@ function showFatalError(msg){
     alert("Your browser's print dialog will open — choose \"Save as PDF\" as the destination.");
     window.print();
   });
-  el("btnRestart").addEventListener("click", () => startTest(state.chapterIndex));
-  el("btnRestart2").addEventListener("click", () => startTest(state.chapterIndex));
+  el("btnRestart").addEventListener("click", () => restartCurrentTest());
+  el("btnRestart2").addEventListener("click", () => restartCurrentTest());
   el("btnBackToChapters").addEventListener("click", () => showView("view-chapters"));
 
   // ---------- Review ----------
